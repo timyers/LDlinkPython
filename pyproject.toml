@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ldlinkpython"
+version = "0.1.0"
+description = "Official Python client for the NIH LDlink REST API."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "LDlinkPython contributors" }
+]
+dependencies = [
+  "requests>=2.31",
+  "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "responses>=0.25",
+  "ruff>=0.4",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ldlinkpython*"]
+
+[tool.setuptools.package-data]
+ldlinkpython = ["data/*.csv"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+fix = false
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+addopts = "-ra"
