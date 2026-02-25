@@ -99,10 +99,11 @@ def test_ldmatrix_auto_get_params(monkeypatch: pytest.MonkeyPatch) -> None:
     assert calls["method"] == "GET"
     assert calls["url"].endswith("/ldmatrix")
     assert calls["params"] == {
-        "snps": "rs1+rs2",
+        "snps": "rs1\nrs2",
         "pop": "CEU",
         "r2_d": "r2",
         "genome_build": "grch37",
+        "token": "test-token",
     }
     assert calls["json"] is None
 
@@ -149,7 +150,7 @@ def test_ldmatrix_auto_post_json_body(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert calls["method"] == "POST"
     assert calls["url"].endswith("/ldmatrix")
-    assert calls["params"] is None
+    assert calls["params"] == {"token": "test-token"}
     assert calls["json"] == {
         "snps": snps,
         "pop": "CEU",

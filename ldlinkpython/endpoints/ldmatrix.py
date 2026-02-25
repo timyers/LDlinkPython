@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import socket
+import urllib3
 import threading
 from typing import Any, Dict, List, Sequence, Union, Optional, Literal
 
@@ -81,20 +83,25 @@ def _request_json(
     json_body: Optional[Dict[str, Any]] = None,
 ) -> Any:
     with _REQUEST_LOCK:
+        orig_allowed_gai_family = urllib3.util.connection.allowed_gai_family
         try:
-            resp = requests.request(
-                method=method,
-                url=url,
-                headers=headers,
-                params=params,
-                json=json_body,
-                timeout=120,
-            )
-        except requests.RequestException as e:
-            raise RuntimeError(f"Network error calling LDlink endpoint: {e}") from e
+            # Force IPv4 to avoid IPv6 handshake resets on some networks.
+            urllib3.util.connection.allowed_gai_family = lambda: socket.AF_INET  # type: ignore[assignment]
+            try:
+                resp = requests.request(
+                    method=method,
+                    url=url,
+                    headers=headers,
+                    params=params,
+                    json=json_body,
+                    timeout=120,
+                )
+            except requests.RequestException as e:
+                raise RuntimeError(f"Network error calling LDlink endpoint: {e}") from e
+        finally:
+            urllib3.util.connection.allowed_gai_family = orig_allowed_gai_family  # type: ignore[assignment]
 
     if resp.status_code >= 400:
-        # Try to provide helpful diagnostics
         text = ""
         try:
             text = resp.text or ""
@@ -105,7 +112,6 @@ def _request_json(
             msg += f": {text.strip()}"
         raise RuntimeError(msg)
 
-    # LDlink sometimes returns JSON or plain text; attempt JSON first
     try:
         return resp.json()
     except ValueError:
@@ -176,15 +182,15 @@ def ldmatrix(
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": f"Bearer {tok}",
     }
 
     if req_method == "get":
         params = {
-            "snps": "+".join(snp_list),
+            "snps": "\n".join(snp_list),
             "pop": pop,
             "r2_d": r2d,
             "genome_build": genome_build,
+            "token": tok,
         }
         data = _request_json("GET", url, headers=headers, params=params, json_body=None)
     else:
@@ -194,7 +200,7 @@ def ldmatrix(
             "r2_d": r2d,
             "genome_build": genome_build,
         }
-        data = _request_json("POST", url, headers=headers, params=None, json_body=body)
+        data = _request_json("POST", url, headers=headers, params={"token": tok}, json_body=body)
 
     if return_type_norm == "raw":
         return data
