@@ -1,121 +1,13 @@
 from __future__ import annotations
 
-import os
-import socket
-import urllib3
-import threading
-from typing import Any, Dict, List, Sequence, Union, Optional, Literal
+from typing import Any, Sequence, Union, Optional
 
 import pandas as pd
-import requests
 
 from ldlinkpython import DEFAULT_API_ROOT
-
-try:
-    # Expected to exist elsewhere in the package
-    from ldlinkpython.parsers import parse_matrix  # type: ignore
-except Exception:  # pragma: no cover
-    parse_matrix = None  # type: ignore
-
-
-_REQUEST_LOCK = threading.Lock()
-
-
-def _normalize_snps(snps: Union[str, Sequence[str]]) -> List[str]:
-    if snps is None:
-        raise ValueError("snps is required and must be a string or a sequence of strings.")
-
-    if isinstance(snps, str):
-        # Accept common separators. Prefer treating whitespace/comma/newline as delimiters.
-        raw = (
-            snps.replace("\n", " ")
-            .replace("\r", " ")
-            .replace("\t", " ")
-            .replace(",", " ")
-        )
-        parts = [p.strip() for p in raw.split(" ") if p.strip()]
-        if not parts:
-            raise ValueError("snps must contain at least one SNP identifier.")
-        return parts
-
-    if isinstance(snps, (list, tuple)):
-        parts = [str(s).strip() for s in snps if str(s).strip()]
-        if not parts:
-            raise ValueError("snps must contain at least one SNP identifier.")
-        return parts
-
-    # Generic sequence support
-    try:
-        parts = [str(s).strip() for s in snps if str(s).strip()]  # type: ignore[arg-type]
-    except TypeError as e:
-        raise ValueError("snps must be a string or a sequence of strings.") from e
-
-    if not parts:
-        raise ValueError("snps must contain at least one SNP identifier.")
-    return parts
-
-
-def _get_token(token: Optional[str]) -> str:
-    tok = token or os.getenv("LDLINK_TOKEN")
-    if not tok:
-        raise ValueError(
-            "LDlink API token missing. Provide token=... or set environment variable LDLINK_TOKEN."
-        )
-    return tok
-
-
-def _validate_choice(name: str, value: str, allowed: Sequence[str]) -> str:
-    v = str(value).strip()
-    if not v:
-        raise ValueError(f"{name} is required.")
-    v_lower = v.lower()
-    allowed_lower = {a.lower(): a for a in allowed}
-    if v_lower not in allowed_lower:
-        raise ValueError(f"{name} must be one of {list(allowed)} (got {value!r}).")
-    return allowed_lower[v_lower]
-
-
-def _request_json(
-    method: Literal["GET", "POST"],
-    url: str,
-    headers: Dict[str, str],
-    params: Optional[Dict[str, Any]] = None,
-    json_body: Optional[Dict[str, Any]] = None,
-) -> Any:
-    with _REQUEST_LOCK:
-        orig_allowed_gai_family = urllib3.util.connection.allowed_gai_family
-        try:
-            # Force IPv4 to avoid IPv6 handshake resets on some networks.
-            urllib3.util.connection.allowed_gai_family = lambda: socket.AF_INET  # type: ignore[assignment]
-            try:
-                resp = requests.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    params=params,
-                    json=json_body,
-                    timeout=120,
-                )
-            except requests.RequestException as e:
-                raise RuntimeError(f"Network error calling LDlink endpoint: {e}") from e
-        finally:
-            urllib3.util.connection.allowed_gai_family = orig_allowed_gai_family  # type: ignore[assignment]
-
-    if resp.status_code >= 400:
-        text = ""
-        try:
-            text = resp.text or ""
-        except Exception:
-            text = ""
-        msg = f"LDlink request failed ({resp.status_code}) for {method} {url}"
-        if text.strip():
-            msg += f": {text.strip()}"
-        raise RuntimeError(msg)
-
-    try:
-        return resp.json()
-    except ValueError:
-        return resp.text
+from ldlinkpython.http import request as http_request
+from ldlinkpython.parsing import parse_matrix
+from ldlinkpython.validators import normalize_snps, validate_genome_build, validate_r2d
 
 
 def ldmatrix(
@@ -155,14 +47,14 @@ def ldmatrix(
     -------
     pandas.DataFrame or raw response
     """
-    snp_list = _normalize_snps(snps)
+    snp_list = normalize_snps(snps)
 
     pop = str(pop).strip()
     if not pop:
         raise ValueError("pop is required.")
 
-    r2d = _validate_choice("r2d", r2d, allowed=["r2", "d"])
-    genome_build = _validate_choice("genome_build", genome_build, allowed=["grch37", "grch38"])
+    r2d_norm = validate_r2d(r2d)
+    genome_build_norm = validate_genome_build(genome_build)
 
     return_type_norm = str(return_type).strip().lower()
     if return_type_norm not in {"dataframe", "raw"}:
@@ -175,43 +67,49 @@ def ldmatrix(
     if req_method == "auto":
         req_method = "get" if len(snp_list) <= 300 else "post"
 
-    tok = _get_token(token)
-    api_root_clean = str(api_root).rstrip("/")
-    url = f"{api_root_clean}/ldmatrix"
-
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
+    headers = {"Accept": "application/json"}
 
     if req_method == "get":
         params = {
             "snps": "\n".join(snp_list),
             "pop": pop,
-            "r2_d": r2d,
-            "genome_build": genome_build,
-            "token": tok,
+            "r2_d": r2d_norm,
+            "genome_build": genome_build_norm,
         }
-        data = _request_json("GET", url, headers=headers, params=params, json_body=None)
+        data = http_request(
+            "ldmatrix",
+            api_root=api_root,
+            token=token,
+            method="GET",
+            params=params,
+            headers=headers,
+            timeout=120.0,
+        )
     else:
         body = {
             "snps": snp_list,
             "pop": pop,
-            "r2_d": r2d,
-            "genome_build": genome_build,
+            "r2_d": r2d_norm,
+            "genome_build": genome_build_norm,
         }
-        data = _request_json("POST", url, headers=headers, params={"token": tok}, json_body=body)
+        data = http_request(
+            "ldmatrix",
+            api_root=api_root,
+            token=token,
+            method="POST",
+            json_body=body,
+            headers=headers,
+            timeout=120.0,
+        )
 
     if return_type_norm == "raw":
         return data
 
-    if parse_matrix is None:
-        raise RuntimeError(
-            "parse_matrix is not available. Ensure ldlinkpython.parsers.parse_matrix exists."
-        )
+    if not isinstance(data, str):
+        data = str(data)
 
     try:
-        df = parse_matrix(data)  # type: ignore[misc]
+        df = parse_matrix(data)
     except Exception as e:
         raise RuntimeError(f"Failed to parse ldmatrix response with parse_matrix: {e}") from e
 

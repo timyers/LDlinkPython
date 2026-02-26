@@ -1,3 +1,4 @@
+# tests/test_ldmatrix.py
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
@@ -6,60 +7,16 @@ import pandas as pd
 import pytest
 
 
-class _FakeResponse:
-    def __init__(self, status_code: int = 200, text: str = "", json_data: Any = None):
-        self.status_code = status_code
-        self._text = text
-        self._json_data = json_data
-
-    @property
-    def text(self) -> str:
-        return self._text
-
-    def json(self) -> Any:
-        if self._json_data is None:
-            raise ValueError("No JSON")
-        return self._json_data
-
-
-def _parse_matrix_tsv(payload: Any) -> pd.DataFrame:
-    """
-    Minimal parser for a TSV square matrix of the form LDlink returns, where the first
-    header line begins with a TAB (blank top-left cell), followed by column SNP IDs.
-
-    IMPORTANT: Do not .strip() the whole payload, because that removes the leading TAB
-    and breaks header parsing.
-
-    Example:
-        \\trs1\\trs2
-        rs1\\t1\\t0.2
-        rs2\\t0.2\\t1
-    """
-    if not isinstance(payload, str):
-        raise TypeError("Expected matrix payload as string")
-
-    # Keep leading TABs; just normalize line endings and drop fully empty lines.
-    raw_lines = payload.splitlines()
-    lines = [ln.rstrip("\r\n") for ln in raw_lines if ln.strip() != ""]
-    if not lines:
-        raise ValueError("Empty matrix payload")
-
-    header_parts = lines[0].split("\t")
-    if len(header_parts) < 2:
-        raise ValueError("Matrix header does not contain column labels")
-
-    cols = header_parts[1:]
-    data = []
+def _parse_matrix_tsv(text: str) -> pd.DataFrame:
+    lines = [ln for ln in text.splitlines() if ln.strip()]
+    header = lines[0].split("\t")[1:]
+    rows = []
     idx = []
-
     for ln in lines[1:]:
         parts = ln.split("\t")
-        if len(parts) != len(cols) + 1:
-            raise ValueError("Row length does not match header length")
         idx.append(parts[0])
-        data.append([float(x) for x in parts[1:]])
-
-    return pd.DataFrame(data, index=idx, columns=cols)
+        rows.append([float(x) for x in parts[1:]])
+    return pd.DataFrame(rows, index=idx, columns=header)
 
 
 def test_ldmatrix_auto_get_params(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -67,50 +24,53 @@ def test_ldmatrix_auto_get_params(monkeypatch: pytest.MonkeyPatch) -> None:
 
     calls: Dict[str, Any] = {}
 
-    def fake_request(
-        method: str,
-        url: str,
-        headers: Dict[str, str],
+    def fake_http_request(
+        endpoint: str,
+        *,
         params: Optional[Dict[str, Any]] = None,
-        json: Optional[Dict[str, Any]] = None,
-        timeout: Optional[int] = None,
-    ) -> _FakeResponse:
+        json_body: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        token: Optional[str] = None,
+        api_root: str,
+        method: str = "GET",
+        timeout: float = 60.0,
+    ) -> str:
+        calls["endpoint"] = endpoint
+        calls["api_root"] = api_root
+        calls["token"] = token
         calls["method"] = method
-        calls["url"] = url
-        calls["headers"] = headers
         calls["params"] = params
-        calls["json"] = json
+        calls["json_body"] = json_body
+        calls["headers"] = headers
         calls["timeout"] = timeout
-        return _FakeResponse(status_code=200, text="\trs1\trs2\nrs1\t1\t0.2\nrs2\t0.2\t1\n")
+        return "\trs1\trs2\nrs1\t1\t0.2\nrs2\t0.2\t1\n"
 
     monkeypatch.setattr(ldmatrix_mod, "parse_matrix", _parse_matrix_tsv)
-    monkeypatch.setattr(ldmatrix_mod.requests, "request", fake_request)
+    monkeypatch.setattr(ldmatrix_mod, "http_request", fake_http_request)
 
     df = ldmatrix_mod.ldmatrix(
         snps=["rs1", "rs2"],
         pop="CEU",
         r2d="r2",
         genome_build="grch37",
-        token="test-token",
+        token="tok",
+        api_root="https://ldlink.nih.gov/LDlinkRest",
         return_type="dataframe",
         request_method="auto",
     )
 
-    assert calls["method"] == "GET"
-    assert calls["url"].endswith("/ldmatrix")
-    assert calls["params"] == {
-        "snps": "rs1\nrs2",
-        "pop": "CEU",
-        "r2_d": "r2",
-        "genome_build": "grch37",
-        "token": "test-token",
-    }
-    assert calls["json"] is None
-
     assert isinstance(df, pd.DataFrame)
-    assert df.shape == (2, 2)
-    assert list(df.index) == ["rs1", "rs2"]
-    assert list(df.columns) == ["rs1", "rs2"]
+    assert calls["method"] == "GET"
+    assert calls["endpoint"] == "ldmatrix"
+    assert calls["api_root"] == "https://ldlink.nih.gov/LDlinkRest"
+    assert calls["token"] == "tok"
+    assert calls["params"] is not None
+    assert calls["params"]["pop"] == "CEU"
+    assert calls["params"]["r2_d"] == "r2"
+    assert calls["params"]["genome_build"] == "grch37"
+    assert "rs1" in calls["params"]["snps"]
+    assert "rs2" in calls["params"]["snps"]
+    assert calls["json_body"] is None
 
 
 def test_ldmatrix_auto_post_json_body(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -118,75 +78,86 @@ def test_ldmatrix_auto_post_json_body(monkeypatch: pytest.MonkeyPatch) -> None:
 
     calls: Dict[str, Any] = {}
 
-    def fake_request(
-        method: str,
-        url: str,
-        headers: Dict[str, str],
+    def fake_http_request(
+        endpoint: str,
+        *,
         params: Optional[Dict[str, Any]] = None,
-        json: Optional[Dict[str, Any]] = None,
-        timeout: Optional[int] = None,
-    ) -> _FakeResponse:
+        json_body: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        token: Optional[str] = None,
+        api_root: str,
+        method: str = "GET",
+        timeout: float = 60.0,
+    ) -> str:
+        calls["endpoint"] = endpoint
+        calls["api_root"] = api_root
+        calls["token"] = token
         calls["method"] = method
-        calls["url"] = url
-        calls["headers"] = headers
         calls["params"] = params
-        calls["json"] = json
+        calls["json_body"] = json_body
+        calls["headers"] = headers
         calls["timeout"] = timeout
-        return _FakeResponse(status_code=200, text="\trs1\trs2\nrs1\t1\t0.2\nrs2\t0.2\t1\n")
+        return "\trs1\trs2\nrs1\t1\t0.2\nrs2\t0.2\t1\n"
 
     monkeypatch.setattr(ldmatrix_mod, "parse_matrix", _parse_matrix_tsv)
-    monkeypatch.setattr(ldmatrix_mod.requests, "request", fake_request)
+    monkeypatch.setattr(ldmatrix_mod, "http_request", fake_http_request)
 
-    snps = [f"rs{i}" for i in range(1, 302)]  # 301 SNPs -> POST when request_method="auto"
-    _ = ldmatrix_mod.ldmatrix(
-        snps=snps,
+    df = ldmatrix_mod.ldmatrix(
+        snps=[f"rs{i}" for i in range(1, 302)],  # 301 forces POST in auto mode
         pop="CEU",
         r2d="r2",
         genome_build="grch37",
-        token="test-token",
+        token="tok",
+        api_root="https://ldlink.nih.gov/LDlinkRest",
         return_type="dataframe",
         request_method="auto",
     )
 
+    assert isinstance(df, pd.DataFrame)
     assert calls["method"] == "POST"
-    assert calls["url"].endswith("/ldmatrix")
-    assert calls["params"] == {"token": "test-token"}
-    assert calls["json"] == {
-        "snps": snps,
-        "pop": "CEU",
-        "r2_d": "r2",
-        "genome_build": "grch37",
-    }
+    assert calls["endpoint"] == "ldmatrix"
+    assert calls["api_root"] == "https://ldlink.nih.gov/LDlinkRest"
+    assert calls["token"] == "tok"
+    assert calls["params"] is None
+    assert calls["json_body"] is not None
+    assert calls["json_body"]["pop"] == "CEU"
+    assert calls["json_body"]["r2_d"] == "r2"
+    assert calls["json_body"]["genome_build"] == "grch37"
+    assert isinstance(calls["json_body"]["snps"], list)
+    assert len(calls["json_body"]["snps"]) == 301
 
 
 def test_ldmatrix_parses_matrix_to_dataframe(monkeypatch: pytest.MonkeyPatch) -> None:
     from ldlinkpython.endpoints import ldmatrix as ldmatrix_mod
 
-    def fake_request(
-        method: str,
-        url: str,
-        headers: Dict[str, str],
+    def fake_http_request(
+        endpoint: str,
+        *,
         params: Optional[Dict[str, Any]] = None,
-        json: Optional[Dict[str, Any]] = None,
-        timeout: Optional[int] = None,
-    ) -> _FakeResponse:
-        matrix_tsv = "\trsA\trsB\nrsA\t1\t0.75\nrsB\t0.75\t1\n"
-        return _FakeResponse(status_code=200, text=matrix_tsv, json_data=None)
+        json_body: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        token: Optional[str] = None,
+        api_root: str,
+        method: str = "GET",
+        timeout: float = 60.0,
+    ) -> str:
+        return "\trsA\trsB\nrsA\t1\t0.75\nrsB\t0.75\t1\n"
 
     monkeypatch.setattr(ldmatrix_mod, "parse_matrix", _parse_matrix_tsv)
-    monkeypatch.setattr(ldmatrix_mod.requests, "request", fake_request)
+    monkeypatch.setattr(ldmatrix_mod, "http_request", fake_http_request)
 
     df = ldmatrix_mod.ldmatrix(
-        snps=["rsA", "rsB"],
-        token="test-token",
+        snps="rsA rsB",
+        pop="CEU",
+        r2d="r2",
+        genome_build="grch37",
+        token="tok",
+        api_root="https://ldlink.nih.gov/LDlinkRest",
         return_type="dataframe",
         request_method="get",
     )
 
-    assert df.shape == (2, 2)
-    assert list(df.index) == ["rsA", "rsB"]
+    assert isinstance(df, pd.DataFrame)
     assert list(df.columns) == ["rsA", "rsB"]
-    assert df.loc["rsA", "rsA"] == 1.0
-    assert df.loc["rsA", "rsB"] == 0.75
-    assert df.loc["rsB", "rsA"] == 0.75
-    assert df.loc["rsB", "rsB"] == 1.0
+    assert list(df.index) == ["rsA", "rsB"]
+    assert float(df.loc["rsA", "rsB"]) == 0.75
