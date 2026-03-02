@@ -102,13 +102,15 @@ def request(
     token: Optional[str] = None,
     api_root: str,
     method: str = "GET",
-    timeout: float = 60.0,
+    timeout: float = 180.0,
 ) -> Union[Dict[str, Any], list, str]:
     """
     Shared HTTP helper for LDlink REST endpoints.
 
     - Serializes all requests via a single global lock.
     - Adds token as query param token=...
+    - For GET: sends params as query string.
+    - For non-GET: sends payload in request body (JSON by default; form for ldtrait).
     - Parses JSON if possible; otherwise returns raw text.
     - Retries once forcing IPv4 if the first attempt raises requests.ConnectionError.
     - Supports JSON request bodies and custom headers.
@@ -116,21 +118,41 @@ def request(
     Raises RuntimeError on HTTP status >= 400 or repeated connection failure.
     """
     tok = ensure_token(token)
-    qparams: Dict[str, Any] = dict(params or {})
-    qparams["token"] = tok
 
+    method_u = method.upper()
+    endpoint_l = endpoint.lower().lstrip("/")
+
+    # Build URL
     base = api_root.rstrip("/") + "/"
     url = urljoin(base, endpoint.lstrip("/"))
 
+    # Build query params and body depending on method
+    if method_u == "GET":
+        qparams: Dict[str, Any] = dict(params or {})
+        qparams["token"] = tok
+        body: Optional[Dict[str, Any]] = json_body
+    else:
+        # LDlink commonly expects token in the query string even for POST endpoints.
+        qparams = {"token": tok}
+        body = json_body if json_body is not None else dict(params or {})
+        # Ensure token isn't duplicated into body accidentally
+        if isinstance(body, dict):
+            body.pop("token", None)
+
     def _do_request() -> Response:
-        return requests.request(
+        kwargs: Dict[str, Any] = dict(
             method=method,
             url=url,
-            params=qparams,
-            json=json_body,
+            params=qparams,   # query string (includes token)
             headers=headers,
             timeout=timeout,
         )
+
+        if method_u != "GET":
+            kwargs["json"] = body   # JSON POST, as in API docs
+        # For GET: no request body
+
+        return requests.request(**kwargs)
 
     with _request_lock():
         try:

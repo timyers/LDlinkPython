@@ -5,6 +5,7 @@ __version__ = "0.1.0"
 
 from ldlinkpython.client import LDlinkClient
 from ldlinkpython.endpoints.ldproxy import ldproxy
+from ldlinkpython.endpoints.ldtrait import ldtrait
 
 __all__ = [
     "DEFAULT_API_ROOT",
