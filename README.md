@@ -12,7 +12,7 @@
 - **Recommended:** use `request_method="auto"` (POST). This is the default and is the most reliable.
 - **Optional:** `request_method="get"` uses the `ldtraitget` endpoint. In some environments this may fail due to network/TLS issues. If you hit errors with GET, switch back to POST.
 
-### `ldhap` examples
+### `ldhap` command-line examples (1–4)
 
 Set your token once in your shell:
 
@@ -20,51 +20,29 @@ Set your token once in your shell:
 export LDLINK_TOKEN="YOUR_TOKEN_HERE"
 ```
 
-```python
+1) Haplotype table (default):
 
-from ldlinkpython import ldhap
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import ldhap; df=ldhap(snps=['rs3','rs4'], pop=['CEU','YRI'], table_type='haplotype', genome_build='grch37', token=None); print(df.head().to_string(index=False))"
+```
 
-# 1) Haplotype table (default)
-out_hap = ldhap(
-    snps=["rs3", "rs4"],
-    pop=["CEU", "YRI"],
-    table_type="haplotype",
-    genome_build="grch37",
-)
-print(out_hap.head())
+2) Variant table:
 
-# 2) Variant table
-out_var = ldhap(
-    snps=["rs3", "rs4"],
-    pop="CEU",
-    table_type="variant",
-    genome_build="grch38",
-)
-print(out_var.head())
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import ldhap; df=ldhap(snps=['rs3','rs4'], pop='CEU', table_type='variant', genome_build='grch38', token=None); print(df.head().to_string(index=False))"
+```
 
-# 3) Both tables
-out_both = ldhap(
-    snps=["rs3", "rs4"],
-    pop=["CEU", "YRI"],
-    table_type="both",
-    genome_build="grch37",
-)
+3) Both tables:
 
-# preview both
-print(out_both.head())
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import ldhap; out=ldhap(snps=['rs3','rs4'], pop=['CEU','YRI'], table_type='both', genome_build='grch37', token=None); print('Variant table:'); print(out['variant'].head().to_string(index=False)); print(''); print('Haplotype table:'); print(out['haplotype'].head().to_string(index=False))"
+```
 
-# access each table explicitly
-print(out_both["variant"].head())
-print(out_both["haplotype"].head())
+4) Merged table:
 
-# 4) Merged table
-out_merged = ldhap(
-    snps=["rs3", "rs4"],
-    pop=["CEU", "YRI"],
-    table_type="merged",
-    genome_build="grch37",
-)
-print(out_merged.head())
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import ldhap; df=ldhap(snps=['rs3','rs4'], pop=['CEU','YRI'], table_type='merged', genome_build='grch37', token=None); print(df.head().to_string(index=False))"
+```
 
 ```
 
