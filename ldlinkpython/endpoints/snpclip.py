@@ -133,7 +133,7 @@ def snpclip(
         raise ValidationError("Invalid input for file option.")
 
     body = {
-        "snps": snp_list,
+        "snps": "\n".join(snp_list),
         "pop": pop_norm,
         "r2_threshold": r2_norm,
         "maf_threshold": maf_norm,

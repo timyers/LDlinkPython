@@ -37,7 +37,7 @@ def test_snpclip_posts_and_parses_tsv(monkeypatch: pytest.MonkeyPatch) -> None:
     assert captured["method"] == "POST"
     body = captured["json_body"]
     assert isinstance(body, dict)
-    assert body["snps"] == ["rs3", "rs4"]
+    assert body["snps"] == "rs3\nrs4"
     assert body["pop"] == "CEU+YRI"
     assert body["r2_threshold"] == "0.2"
     assert body["maf_threshold"] == "0.05"
