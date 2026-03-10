@@ -76,6 +76,22 @@ def test_snpchip_raises_on_error_row(monkeypatch: pytest.MonkeyPatch) -> None:
         snpchip_mod.snpchip(snps=["rs3"], token="tok")
 
 
+def test_snpchip_handles_missing_array_entries(monkeypatch: pytest.MonkeyPatch) -> None:
+    tsv = (
+        "RS.Number\tCoord\tArrays\n"
+        "rs3\tchr1:101\tIllumina Human1Mv1\n"
+        "rs148890987\tchr7:24966446\tNA\n"
+    )
+    monkeypatch.setattr(snpchip_mod, "http_request", lambda **kwargs: tsv)
+
+    out = snpchip_mod.snpchip(snps=["rs3", "rs148890987"], token="tok")
+    assert isinstance(out, pd.DataFrame)
+    assert list(out["RS_Number"]) == ["rs3", "rs148890987"]
+    assert "I_1M" in out.columns
+    assert out.loc[0, "I_1M"] == 1
+    assert out.loc[1, "I_1M"] == 0
+
+
 def test_snpchip_validation() -> None:
     with pytest.raises(Exception, match="1 to 5000 variants"):
         snpchip_mod.snpchip(snps=[], token="tok")

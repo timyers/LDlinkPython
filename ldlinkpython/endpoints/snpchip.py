@@ -178,16 +178,19 @@ def _count_snp_rows(data_out: pd.DataFrame) -> int:
     return int(first_col.str.match(_RSID_RE).sum())
 
 
-def _format_tbl(out_raw: pd.DataFrame) -> pd.DataFrame | None:
+def _format_tbl(out_raw: pd.DataFrame) -> pd.DataFrame:
     snp_count = _count_snp_rows(out_raw)
     out = out_raw.iloc[:snp_count, :2].copy()
     out.columns = [re.sub(r"_$", "", re.sub(r"(\.)+", "_", str(c))) for c in out.columns]
 
-    arrays = out_raw.iloc[:snp_count, 2] if out_raw.shape[1] > 2 else pd.Series([], dtype="string")
-    if arrays.isna().any():
-        return None
+    if out_raw.shape[1] <= 2:
+        return out
+
+    arrays = out_raw.iloc[:snp_count, 2]
 
     for i, val in enumerate(arrays.tolist()):
+        if pd.isna(val):
+            continue
         for arr_name in [v.strip() for v in str(val).split(",") if v.strip()]:
             abbrev = _ARRAY_TO_ABBREV.get(arr_name)
             if not abbrev:
