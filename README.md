@@ -44,6 +44,63 @@ Notes:
 - `genome_build` supports `grch37`, `grch38`, and `grch38_high_coverage`.
 - `table_type` supports `haplotype`, `variant`, `both`, and `merged`.
 
+### `snpclip` command-line examples (1–8)
+
+Set your token once in your shell:
+
+```bash
+export LDLINK_TOKEN="YOUR_TOKEN_HERE"
+```
+
+1) Basic default call (CEU, default thresholds):
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpclip; df=snpclip(snps=['rs3','rs4'], token=None); print(df.head().to_string(index=False))"
+```
+
+2) Multiple populations:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpclip; df=snpclip(snps=['rs3','rs4','rs148890987'], pop=['CEU','YRI','CHB'], token=None); print(df.head(10).to_string(index=False))"
+```
+
+3) Custom thresholds:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpclip; df=snpclip(snps=['rs3','rs4'], r2_threshold=0.2, maf_threshold=0.05, token=None); print(df.to_string(index=False))"
+```
+
+4) GRCh38 build:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpclip; df=snpclip(snps=['rs3','rs4'], genome_build='grch38', token=None); print(df.head().to_string(index=False))"
+```
+
+5) GRCh38 high coverage + explicit token argument:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpclip; df=snpclip(snps=['rs3','rs4'], genome_build='grch38_high_coverage', token='YOUR_TOKEN_HERE'); print(df.head().to_string(index=False))"
+```
+
+6) Save output to a TSV file:
+
+```bash
+mkdir -p tmp
+PYTHONPATH=. python -c "from ldlinkpython import snpclip; df=snpclip(snps=['rs3','rs4'], pop='CEU', token=None, file='tmp/snpclip_rs3_rs4.tsv'); print('saved', len(df), 'rows')"
+```
+
+7) Raw mode (no DataFrame parsing):
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpclip; out=snpclip(snps=['rs3','rs4'], token=None, return_type='raw'); print(type(out)); print(str(out)[:500])"
+```
+
+8) Coordinate-style variant input:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpclip; df=snpclip(snps=['chr7:24966446','chr7:24966584'], pop='CEU', token=None); print(df.head().to_string(index=False))"
+```
+
 ### `ldpop` command-line examples (1–4)
 
 Set your token once in your shell:
