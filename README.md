@@ -133,3 +133,64 @@ PYTHONPATH=. python -c "from ldlinkpython import ldpop; df=ldpop(var1='chr13:318
 PYTHONPATH=. python -c "from ldlinkpython import ldpop; ldpop(var1='rs3', var2='rs4', pop='CEU', token=None, file='tmp/ldpop_rs3_rs4.tsv'); print('saved tmp/ldpop_rs3_rs4.tsv')"
 ```
 
+### `SNPchip` command-line examples (1–8)
+
+Used to find commercial genotyping chip arrays for variants. Input is a list of between 1 - 5000 variants (one per line) and desired commercial chip arrays to search. Input variants do not need to be on the same chromosome.
+
+**Arguments**
+
+- `snps` (required): one rsID or chromosome coordinate string, or a list of those values; valid formats include `rs3` and `chr7:24966446`; supports 1–5000 variants.
+- `chip` (optional, default: `"ALL"`): one platform code or a list of platform codes; special values: `ALL`, `ALL_Illumina`, `ALL_Affy`.
+- `genome_build` (optional, default: `"grch37"`): one of `grch37`, `grch38`, `grch38_high_coverage`.
+- `token` (optional): LDlink token string. If omitted (`None`), `LDLINK_TOKEN` environment variable is used.
+- `api_root` (optional): custom LDlink API root URL (default is package `DEFAULT_API_ROOT`).
+- `return_type` (optional, default: `"dataframe"`): `"dataframe"` for parsed output or `"raw"` for raw response text.
+
+Output is a data frame of query variant rows (RS number), genomic coordinate (GRCh37) and genotyping chip array columns. The presence of a `1` designates the variant is present on the respective commercial genotyping array and a `0` indicates that it is not present on the genotyping array.
+
+Set your token once in your shell:
+
+```bash
+export LDLINK_TOKEN="YOUR_TOKEN_HERE"
+```
+1) Basic call (defaults: `chip='ALL'`, `genome_build='grch37'`):
+   
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpchip; df=snpchip(['rs3','rs4']); print(df)"
+```
+
+2) Mixed rsID and coordinate query:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpchip; df=snpchip(['chr7:24966446','rs148890987']); print(df)"
+```
+
+3) Affymetrix-only search (`ALL_Affy`):
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpchip; df=snpchip(['rs3','rs4'], chip='ALL_Illumina', genome_build='grch38'); print(df)"
+```
+5) Explicit platform list:
+
+```bash
+python -c "from ldlinkpython import snpchip; df=snpchip(['rs3','rs4'], chip=['A_SNP5.0','A_SNP6.0','I_1M']); print(df)"
+```
+
+6) Raw response output:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpchip; out=snpchip(['rs3','rs4'], return_type='raw'); print(type(out)); print(str(out)[:500])"
+```
+
+7) Explicit token argument (using `rs4`):
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpchip; df=snpchip(['rs4'], token='YOUR_TOKEN_HERE'); print(df)"
+```
+
+8) Save DataFrame to TSV:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import snpchip; df=snpchip(['rs3','rs4']); df.to_csv('tmp/snpchip_output.tsv', sep='\t', index=False); print('wrote tmp/snpchip_output.tsv')"
+```
+
