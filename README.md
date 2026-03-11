@@ -248,3 +248,9 @@ PYTHONPATH=. python -c "from ldlinkpython import list_chips; df=list_chips(); df
 ```bash
 PYTHONPATH=. python -c "from ldlinkpython import list_chips; df=list_chips(); d=dict(zip(df['chip_code'], df['chip_name'])); print('I_100 =>', d['I_100']); print('A_PMRA =>', d['A_PMRA']); print('A_UKBA =>', d['A_UKBA'])"
 ```
+
+8) List only Affymetrix chip platforms:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import list_chips; df=list_chips(); print(df[df['chip_code'].str.startswith('A_')].to_string(index=False))"
+```
