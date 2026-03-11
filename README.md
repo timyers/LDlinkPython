@@ -254,3 +254,44 @@ PYTHONPATH=. python -c "from ldlinkpython import list_chips; df=list_chips(); d=
 ```bash
 PYTHONPATH=. python -c "from ldlinkpython import list_chips; df=list_chips(); print(df[df['chip_code'].str.startswith('A_')].to_string(index=False))"
 ```
+
+### `list_pop` command-line examples
+
+Provides a data frame listing the available reference populations from the 1000 Genomes Project, continental or super-populations (e.g. European, African, Admixed American) and sub-populations (e.g Finnish, Gambian, Peruvian)
+These lookup helpers are local, packaged-data utilities (no network calls).
+
+1) Show first 10 population mappings:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import list_pop; df=list_pop(); print(df.head(10).to_string(index=False))"
+```
+
+2) Confirm row count and column order:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import list_pop; df=list_pop(); print('rows=', len(df)); print('columns=', df.columns.tolist())"
+```
+
+3) Find one specific population code (`YRI`):
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import list_pop; df=list_pop(); print(df.loc[df['pop_code']=='YRI'].to_string(index=False))"
+```
+
+4) Build a quick pop_code -> (super_pop_code, pop_name) mapping and print selected entries:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import list_pop; df=list_pop(); d={r.pop_code:(r.super_pop_code, r.pop_name) for r in df.itertuples(index=False)}; print('ALL =>', d['ALL']); print('YRI =>', d['YRI']); print('CEU =>', d['CEU'])"
+```
+
+5) List only EAS sub-populations:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import list_pop; df=list_pop(); print(df[df['super_pop_code']=='EAS'].to_string(index=False))"
+```
+
+6) Export packaged population lookup data to CSV:
+
+```bash
+PYTHONPATH=. python -c "from ldlinkpython import list_pop; df=list_pop(); df.to_csv('tmp/populations.csv', index=False); print('wrote tmp/populations.csv with', len(df), 'rows')"
+```

@@ -12,7 +12,7 @@ from ldlinkpython.endpoints.ldhap import ldhap
 from ldlinkpython.endpoints.ldpop import ldpop
 from ldlinkpython.endpoints.snpclip import snpclip
 from ldlinkpython.endpoints.snpchip import snpchip
-from ldlinkpython.lookups import list_chip_platforms, list_chips
+from ldlinkpython.lookups import list_chip_platforms, list_chips, list_pop
 
 __all__ = [
     "DEFAULT_API_ROOT",
@@ -26,4 +26,5 @@ __all__ = [
     "snpchip",
     "list_chip_platforms",
     "list_chips",
+    "list_pop",
 ]

@@ -14,6 +14,7 @@ import pandas as pd
 from ldlinkpython.exceptions import ParseError
 
 _EXPECTED_COLUMNS: list[str] = ["chip_code", "chip_name"]
+_EXPECTED_POP_COLUMNS: list[str] = ["pop_code", "super_pop_code", "pop_name"]
 
 
 def list_chip_platforms() -> pd.DataFrame:
@@ -38,3 +39,23 @@ def list_chip_platforms() -> pd.DataFrame:
 def list_chips() -> pd.DataFrame:
     """Alias for :func:`list_chip_platforms` kept for LDlinkR naming parity."""
     return list_chip_platforms()
+
+
+def list_pop() -> pd.DataFrame:
+    """Return LDlink reference populations from packaged lookup data."""
+    try:
+        csv_path = resources.files("ldlinkpython").joinpath("data/pops.csv")
+        with csv_path.open("r", encoding="utf-8", newline="") as handle:
+            dataframe = pd.read_csv(handle, dtype=str)
+    except Exception as exc:  # pragma: no cover - exception path validated by behavior
+        raise ParseError(f"Failed to load packaged population lookup table: {exc}") from exc
+
+    columns: list[str] = list(dataframe.columns)
+    if columns != _EXPECTED_POP_COLUMNS:
+        raise ParseError(
+            "Invalid packaged population lookup table columns. "
+            f"Expected {_EXPECTED_POP_COLUMNS} in order, got {columns}."
+        )
+
+    return dataframe
+    
