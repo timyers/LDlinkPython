@@ -155,6 +155,8 @@ def ldpop(
     if not isinstance(payload, str):
         payload = str(payload)
 
+    payload_text = payload.strip()
+
     data_out = pd.read_csv(
         StringIO(payload),
         sep="\t",
@@ -168,6 +170,11 @@ def ldpop(
         errors = first_col[first_col.str.contains("error", case=False, na=False)].tolist()
         if errors:
             raise RuntimeError(" ".join(errors))
+    elif data_out.columns.size:
+        header_text = " ".join(str(col) for col in data_out.columns)
+        if "error" in header_text.lower():
+            message = payload_text or header_text
+            raise RuntimeError(message)
 
     data_out = _normalize_columns(data_out)
 

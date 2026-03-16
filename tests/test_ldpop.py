@@ -69,6 +69,13 @@ def test_ldpop_raises_runtime_error_on_error_payload(monkeypatch: pytest.MonkeyP
         ldpop_mod.ldpop(var1="rs3", var2="rs4", token="x")
 
 
+ 
+def test_ldpop_raises_runtime_error_on_header_only_error_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ldpop_mod, "http_request", lambda **kwargs: "ERROR: invalid or expired token")
+
+    with pytest.raises(RuntimeError, match="invalid or expired token"):
+        ldpop_mod.ldpop(var1="rs3", var2="rs4", token="x")
+
 def test_ldpop_writes_file(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ldpop_mod, "http_request", lambda **kwargs: "A\tB\n1\t2\n")
 
