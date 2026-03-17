@@ -96,7 +96,10 @@ Check LD between two variants:
 ```python
 ldpair("rs3", "rs4", pop="YRI")
 ```
-![Example output for ldpair()](docs/images/ldpair_example.png)
+
+<p align="center">
+  <img src="docs/images/ldpair_example.png" alt="Example output for ldpair()" width="700">
+</p>
 
 Find proxy variants for a SNP:
 
