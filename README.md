@@ -1,4 +1,4 @@
-## Project: LDlinkPython (in progress...)
+## LDlinkPython (in progress...)
 
 ### Calculating Linkage Disequilibrium in Human Populations of Interest
 
