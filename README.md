@@ -98,7 +98,7 @@ ldpair("rs3", "rs4", pop="YRI")
 ```
 
 <p align="center">
-  <img src="docs/images/ldpair_example.png" alt="Example output for ldpair()" width="700">
+  <img src="docs/images/ldpair_example.png" alt="Example output for ldpair()" width="300">
 </p>
 
 Find proxy variants for a SNP:
