@@ -2,6 +2,11 @@
 
 ### Calculating Linkage Disequilibrium in Human Populations of Interest
 
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python 3.10+"></a>
+</p>
+
 ## Introduction
 
 LDlink is an interactive and powerful suite of web-based tools for querying germline variants in human population groups of interest to generate interactive tables and plots. All population genotype data originates from Phase 3 (Version 5) of the 1000 Genomes Project and variant RS numbers are indexed based on dbSNP 155.
