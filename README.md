@@ -11,6 +11,7 @@ Please see the online LDlink documentation for more information about understand
 ## Install
 
 LDlinkPython is currently installed from GitHub (not PyPI yet).
+Using a virtual environment is also the standard recommendation.
 
 ### Requirements
 - Python 3.10 or newer
