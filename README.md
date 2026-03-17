@@ -22,11 +22,14 @@ LDlinkPython is currently installed from GitHub (not PyPI yet).
 python3 -m venv .venv
 ./.venv/bin/python -m pip install --upgrade pip
 ./.venv/bin/python -m pip install "git+https://github.com/timyers/LDlinkPython.git"
+```
 
 ### Windows (Powershell)
+```powershell
 py -m venv .venv
 .\.venv\Scripts\python -m pip install --upgrade pip
 .\.venv\Scripts\python -m pip install "git+https://github.com/timyers/LDlinkPython.git"
+```
 
 ## Examples
 ### LDtrait notes
