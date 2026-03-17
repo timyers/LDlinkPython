@@ -20,6 +20,9 @@ Using a virtual environment is also the standard recommendation.
 ### macOS
 
 ```bash
+# Optional, remove old virtual environment
+rm -rf .venv
+# Create new virtual environment
 python3 -m venv .venv
 ./.venv/bin/python -m pip install --upgrade pip
 ./.venv/bin/python -m pip install "git+https://github.com/timyers/LDlinkPython.git"
