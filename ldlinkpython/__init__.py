@@ -28,6 +28,8 @@ __all__ = [
     "ldpair",
     "ldmatrix",
     "ldproxy",
+    "ldtrait",
+    "ldmatrix",
     "ldexpress",
     "ldhap",
     "ldpop",
