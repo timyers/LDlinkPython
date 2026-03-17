@@ -4,6 +4,8 @@ DEFAULT_API_ROOT = "https://ldlink.nih.gov/LDlinkRest"
 __version__ = "0.1.0"
 
 from ldlinkpython.client import LDlinkClient
+from ldlinkpython.endpoints.ldpair import ldpair
+from ldlinkpython.endpoints.ldmatrix import ldmatrix
 from ldlinkpython.endpoints.ldproxy import ldproxy
 from ldlinkpython.endpoints.ldtrait import ldtrait
 from ldlinkpython.endpoints.ldmatrix import ldmatrix
@@ -23,6 +25,8 @@ __all__ = [
     "DEFAULT_API_ROOT",
     "__version__",
     "LDlinkClient",
+    "ldpair",
+    "ldmatrix",
     "ldproxy",
     "ldexpress",
     "ldhap",
