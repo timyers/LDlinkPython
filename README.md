@@ -1,5 +1,7 @@
 ## Project: LDlinkPython (in progress...)
 
+### Calculating Linkage Disequilibrium in Human Populations of Interest
+
 ## Introduction
 
 LDlink is an interactive and powerful suite of web-based tools for querying germline variants in human population groups of interest to generate interactive tables and plots. All population genotype data originates from Phase 3 (Version 5) of the 1000 Genomes Project and variant RS numbers are indexed based on dbSNP 155.
