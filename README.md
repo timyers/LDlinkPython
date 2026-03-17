@@ -59,12 +59,12 @@ $env:LDLINK_TOKEN="your_token_here"
 
 #### macOS / Linux
 ```bash
-python3
+./.venv/bin/python
 ```
 
 #### Windows 
 ```powershell
-py
+.\.venv\Scripts\python
 ```
 
 ### 3. Import `LDlinkPython`
